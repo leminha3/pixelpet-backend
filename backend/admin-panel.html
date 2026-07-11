@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PixelPet — Admin Panel</title>
+<style>
+  :root {
+    --bg:#f7f7f6; --surface:#ffffff; --surface2:#f1f0ef;
+    --text:#1a1a1a; --text2:#555; --text3:#999;
+    --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.14);
+    --accent:#1a1a1a; --blue:#378ADD; --green:#1D9E75;
+    --red:#E24B4A; --gold:#BA7517; --purple:#534AB7;
+    --radius:10px; --shadow:0 1px 4px rgba(0,0,0,0.07);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; color:var(--text); background:var(--bg); min-height:100vh; display:flex; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width:200px; background:var(--surface); border-right:0.5px solid var(--border2);
+    display:flex; flex-direction:column; flex-shrink:0; height:100vh; position:sticky; top:0;
+  }
+  .sidebar-logo {
+    padding:18px 16px 14px; border-bottom:0.5px solid var(--border);
+    font-weight:700; font-size:15px; letter-spacing:-0.3px;
+  }
+  .sidebar-logo span { color:var(--text3); font-weight:400; font-size:11px; display:block; margin-top:2px; }
+  .nav { flex:1; padding:8px; display:flex; flex-direction:column; gap:1px; }
+  .nav-item {
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    border-radius:8px; cursor:pointer; color:var(--text2); font-size:12px;
+    border:none; background:none; font-family:inherit; text-align:left; width:100%;
+    transition:background 0.1s;
+  }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { background:var(--accent); color:#fff; }
+  .nav-icon { font-size:15px; width:20px; text-align:center; }
+
+  /* ── Main ── */
+  .main { flex:1; display:flex; flex-direction:column; min-height:100vh; overflow:hidden; }
+  .topbar {
+    background:var(--surface); border-bottom:0.5px solid var(--border2);
+    padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
+    flex-shrink:0;
+  }
+  .topbar-title { font-size:14px; font-weight:600; }
+  .admin-badge {
+    font-size:11px; background:#FAEEDA; color:var(--gold);
+    padding:3px 8px; border-radius:99px; font-weight:600;
+  }
+
+  .content { flex:1; padding:20px; overflow-y:auto; }
+
+  /* ── Login ── */
+  .login-wrap {
+    display:flex; align-items:center; justify-content:center;
+    height:100vh; width:100%;
+  }
+  .login-box {
+    background:var(--surface); border:0.5px solid var(--border2);
+    border-radius:var(--radius); padding:28px 24px; width:320px;
+    box-shadow:var(--shadow);
+  }
+  .login-box h2 { font-size:16px; margin-bottom:4px; }
+  .login-box p { font-size:12px; color:var(--text3); margin-bottom:20px; }
+
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:11px; color:var(--text2); margin-bottom:5px; font-weight:500; }
+  .field input {
+    width:100%; padding:8px 10px; border-radius:8px;
+    border:0.5px solid var(--border2); background:var(--surface2);
+    font-size:13px; font-family:inherit; color:var(--text); outline:none;
+  }
+  .field input:focus { border-color:var(--accent); background:var(--surface); }
+
+  /* ── Cards ── */
+  .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+  .stat-card {
+    background:var(--surface); border:0.5px solid var(--border);
+    border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow);
+  }
+  .stat-card .label { font-size:11px; color:var(--text3); margin-bottom:6px; }
+  .stat-card .value { font-size:24px; font-weight:700; }
+  .stat-card .sub { font-size:11px; color:var(--text2); margin-top:4px; }
+
+  /* ── Table ── */
+  .card {
+    background:var(--surface); border:0.5px solid var(--border);
+    border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+    margin-bottom:16px;
+  }
+  .card-header {
+    padding:12px 16px; border-bottom:0.5px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    font-weight:600; font-size:13px;
+  }
+  table { width:100%; border-collapse:collapse; }
+  th { padding:9px 14px; font-size:11px; color:var(--text3); text-align:left; font-weight:500; border-bottom:0.5px solid var(--border); background:var(--surface2); }
+  td { padding:10px 14px; font-size:12px; border-bottom:0.5px solid var(--border); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:var(--surface2); }
+
+  /* ── Badges ── */
+  .badge { font-size:10px; padding:2px 7px; border-radius:4px; font-weight:500; }
+  .badge-admin { background:#FAEEDA; color:var(--gold); }
+  .badge-user  { background:var(--surface2); color:var(--text2); }
+  .badge-ban   { background:#FDECEA; color:var(--red); }
+  .badge-ok    { background:#E8F6F0; color:var(--green); }
+  .rank-w { background:var(--surface2); color:var(--text2); }
+  .rank-b { background:#E6F1FB; color:#185FA5; }
+  .rank-p { background:#EEEDFE; color:var(--purple); }
+  .rank-g { background:#FAEEDA; color:var(--gold); }
+
+  /* ── Buttons ── */
+  .btn {
+    padding:6px 12px; border-radius:7px; font-size:12px;
+    border:none; cursor:pointer; font-family:inherit; transition:opacity 0.1s;
+  }
+  .btn:hover { opacity:0.8; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-danger  { background:var(--red); color:#fff; }
+  .btn-success { background:var(--green); color:#fff; }
+  .btn-ghost   { background:var(--surface2); color:var(--text); border:0.5px solid var(--border2); }
+  .btn-sm { padding:4px 9px; font-size:11px; }
+
+  /* ── Search ── */
+  .search-row { display:flex; gap:8px; margin-bottom:12px; }
+  .search-inp {
+    flex:1; padding:7px 10px; border-radius:8px;
+    border:0.5px solid var(--border2); font-size:12px; font-family:inherit;
+    background:var(--surface); color:var(--text); outline:none;
+  }
+  .search-inp:focus { border-color:var(--accent); }
+
+  /* ── Modal ── */
+  .modal-bg {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.3); z-index:100;
+    align-items:center; justify-content:center;
+  }
+  .modal-bg.open { display:flex; }
+  .modal {
+    background:var(--surface); border-radius:var(--radius);
+    padding:20px; width:400px; max-width:90vw;
+    border:0.5px solid var(--border2); box-shadow:0 4px 20px rgba(0,0,0,0.15);
+  }
+  .modal h3 { font-size:14px; margin-bottom:14px; }
+  .modal-footer { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+  /* ── Toast ── */
+  #toast {
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--accent); color:#fff; padding:8px 18px;
+    border-radius:99px; font-size:12px; pointer-events:none;
+    opacity:0; transition:opacity 0.2s; z-index:999;
+  }
+  #toast.show { opacity:1; }
+
+  /* ── Broadcast form ── */
+  textarea {
+    width:100%; padding:8px 10px; border-radius:8px;
+    border:0.5px solid var(--border2); font-size:12px;
+    font-family:inherit; color:var(--text); background:var(--surface2);
+    resize:vertical; min-height:80px; outline:none;
+  }
+  textarea:focus { border-color:var(--accent); background:var(--surface); }
+
+  select {
+    padding:6px 10px; border-radius:8px; border:0.5px solid var(--border2);
+    font-size:12px; font-family:inherit; background:var(--surface); color:var(--text);
+    outline:none; cursor:pointer;
+  }
+
+  .empty-state { text-align:center; padding:32px; color:var(--text3); font-size:12px; }
+
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:99px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-page">
+  <div class="login-box">
+    <h2>PixelPet Admin</h2>
+    <p>Log in to manage the system</p>
+    <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="admin@pixelpet.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div id="login-err" style="color:var(--red);font-size:11px;margin-bottom:10px;display:none"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Log In</button>
+    <p style="font-size:11px;color:var(--text3);margin-top:12px;text-align:center">
+      Server: <span id="server-url-display">not set</span>
+      <button class="btn btn-ghost btn-sm" style="margin-left:6px" onclick="setServer()">Change</button>
+    </p>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app" style="display:none;width:100%;display:none">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">PixelPet <span>Admin Panel</span></div>
+    <div class="nav">
+      <button class="nav-item active" id="nav-dashboard" onclick="goPage('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
+      <button class="nav-item" id="nav-users" onclick="goPage('users')"><span class="nav-icon">👥</span>Users</button>
+      <button class="nav-item" id="nav-pixels" onclick="goPage('pixels')"><span class="nav-icon">🎮</span>Pixels</button>
+      <button class="nav-item" id="nav-broadcast" onclick="goPage('broadcast')"><span class="nav-icon">📢</span>Notifications</button>
+    </div>
+    <div style="padding:12px;border-top:0.5px solid var(--border)">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px" id="admin-name">Admin</div>
+      <button class="btn btn-ghost btn-sm" style="width:100%" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <span class="admin-badge">ADMIN</span>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- Give points modal -->
+<div class="modal-bg" id="modal-points">
+  <div class="modal">
+    <h3>Give Gacha Points</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">User: <strong id="modal-user-name"></strong></p>
+    <div class="field"><label>Points</label><input type="number" id="modal-points-val" placeholder="100" min="1"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-points')">Cancel</button>
+      <button class="btn btn-success" onclick="confirmGivePoints()">Give</button>
+    </div>
+  </div>
+</div>
+
+<!-- Give pixel modal -->
+<div class="modal-bg" id="modal-pixel">
+  <div class="modal">
+    <h3>Give Pixel</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">User: <strong id="modal-pixel-user-name"></strong></p>
+    <div class="field">
+      <label>Select pixel</label>
+      <select id="modal-pixel-select" style="width:100%">
+        <option value="robot">Robot (White)</option>
+        <option value="dragon">Blue Dragon (Blue)</option>
+        <option value="fox">Fox (Blue)</option>
+        <option value="owl">Owl (Blue)</option>
+        <option value="wolf">Purple Wolf (Purple)</option>
+        <option value="crab">Crab (Purple)</option>
+        <option value="phoenix">Phoenix (Gold)</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pixel')">Cancel</button>
+      <button class="btn btn-success" onclick="confirmGivePixel()">Give</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────
+let BACKEND = localStorage.getItem('pp_server') || ''
+let TOKEN   = localStorage.getItem('pp_token') || ''
+let ME      = null
+let currentUserId = null
+
+function setServer() {
+  const url = prompt('Enter your Railway server URL:\n(format: https://pixelpet-backend-xxx.railway.app)', BACKEND)
+  if (url) {
+    BACKEND = url.replace(/\/$/, '')
+    localStorage.setItem('pp_server', BACKEND)
+    document.getElementById('server-url-display').textContent = BACKEND || 'not set'
+  }
+}
+
+// ── API helper ────────────────────────────────────────────────
+async function api(method, path, body) {
+  const res = await fetch(BACKEND + path, {
+    method,
+    headers: { 'Content-Type':'application/json', 'Authorization': TOKEN ? `Bearer ${TOKEN}` : '' },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Server error')
+  return data
+}
+
+// ── Auth ──────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim()
+  const pass  = document.getElementById('login-pass').value
+  const err   = document.getElementById('login-err')
+  if (!email || !pass) { err.textContent = 'Enter your email and password'; err.style.display='block'; return }
+  if (!BACKEND) { setServer(); return }
+  try {
+    const data = await api('POST', '/api/auth/login', { email, password: pass })
+    if (data.user.role !== 'admin') throw new Error('This account does not have admin access')
+    TOKEN = data.token
+    ME    = data.user
+    localStorage.setItem('pp_token', TOKEN)
+    showApp()
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block'
+  }
+}
+
+function logout() {
+  TOKEN = ''; localStorage.removeItem('pp_token'); location.reload()
+}
+
+function showApp() {
+  document.getElementById('login-page').style.display = 'none'
+  document.getElementById('admin-app').style.display  = 'flex'
+  document.getElementById('admin-name').textContent   = ME?.username || 'Admin'
+  goPage('dashboard')
+}
+
+// ── Navigation ────────────────────────────────────────────────
+function goPage(page) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
+  document.getElementById('nav-'+page)?.classList.add('active')
+  const titles = { dashboard:'Dashboard', users:'Users', pixels:'Pixel Management', broadcast:'Send Notification' }
+  document.getElementById('page-title').textContent = titles[page] || page
+  if (page==='dashboard') renderDashboard()
+  else if (page==='users') renderUsers()
+  else if (page==='pixels') renderPixels()
+  else if (page==='broadcast') renderBroadcast()
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+async function renderDashboard() {
+  const c = document.getElementById('content')
+  c.innerHTML = '<div style="color:var(--text3);font-size:12px">Loading...</div>'
+  try {
+    const stats = await api('GET', '/api/admin/stats')
+    c.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Total Users</div>
+          <div class="value">${stats.totalUsers.toLocaleString()}</div>
+          <div class="sub">Registered</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Active Today</div>
+          <div class="value">${stats.activeToday.toLocaleString()}</div>
+          <div class="sub">In the last 24h</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Total Gacha Pulls</div>
+          <div class="value">${stats.totalGacha.toLocaleString()}</div>
+          <div class="sub">Pulls made</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Quick Actions</div>
+        <div style="padding:14px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="goPage('users')">👥 Manage Users</button>
+          <button class="btn btn-ghost" onclick="goPage('broadcast')">📢 Send Notification</button>
+          <button class="btn btn-ghost" onclick="goPage('pixels')">🎮 Manage Pixels</button>
+        </div>
+      </div>
+    `
+  } catch (e) {
+    c.innerHTML = `<div class="empty-state">Error: ${e.message}<br><br><button class="btn btn-ghost" onclick="renderDashboard()">Retry</button></div>`
+  }
+}
+
+// ── Users ─────────────────────────────────────────────────────
+let usersData = []
+
+async function renderUsers(search='') {
+  const c = document.getElementById('content')
+  c.innerHTML = `
+    <div class="search-row">
+      <input class="search-inp" id="user-search" placeholder="Search by username or email..." value="${search}" oninput="renderUsers(this.value)">
+      <button class="btn btn-ghost" onclick="renderUsers(document.getElementById('user-search').value)">Search</button>
+    </div>
+    <div class="card">
+      <div class="card-header">User List <span id="user-count" style="font-size:11px;color:var(--text3);font-weight:400"></span></div>
+      <div id="user-table-wrap"><div class="empty-state">Loading...</div></div>
+    </div>
+  `
+  try {
+    const data = await api('GET', `/api/admin/users?search=${encodeURIComponent(search)}&limit=100`)
+    usersData = data.users
+    document.getElementById('user-count').textContent = `${data.total} users`
+    renderUserTable(usersData)
+  } catch (e) {
+    document.getElementById('user-table-wrap').innerHTML = `<div class="empty-state">Error: ${e.message}</div>`
+  }
+}
+
+function renderUserTable(users) {
+  if (!users.length) { document.getElementById('user-table-wrap').innerHTML = '<div class="empty-state">No users found</div>'; return }
+  document.getElementById('user-table-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Username</th><th>Email</th><th>Role</th><th>Pixels</th><th>Points</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${users.map(u => `
+          <tr>
+            <td><strong>${u.username}</strong></td>
+            <td style="color:var(--text2)">${u.email}</td>
+            <td><span class="badge ${u.role==='admin'?'badge-admin':'badge-user'}">${u.role}</span></td>
+            <td style="font-size:11px;color:var(--text2)">${u.unlockedPixels?.join(', ') || 'cat'}</td>
+            <td><strong>${u.gachaPoints || 0}</strong></td>
+            <td><span class="badge ${u.isBanned?'badge-ban':'badge-ok'}">${u.isBanned?'Banned':'Active'}</span></td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-success btn-sm" onclick="openGivePoints('${u._id}','${u.username}')">+ Points</button>
+                <button class="btn btn-ghost btn-sm" onclick="openGivePixel('${u._id}','${u.username}')">+ Pixel</button>
+                <button class="btn ${u.isBanned?'btn-ghost':'btn-danger'} btn-sm" onclick="toggleBan('${u._id}',${u.isBanned},'${u.username}')">${u.isBanned?'Unban':'Ban'}</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `
+}
+
+async function toggleBan(id, isBanned, name) {
+  if (!confirm(`${isBanned?'Unban':'Ban'} user "${name}"?`)) return
+  try {
+    await api('PATCH', `/api/admin/users/${id}/${isBanned?'unban':'ban'}`)
+    toast(`✓ ${isBanned?'Unbanned':'Banned'} ${name}`)
+    renderUsers()
+  } catch(e) { toast('Error: '+e.message, true) }
+}
+
+// ── Give points modal ─────────────────────────────────────────
+function openGivePoints(id, name) {
+  currentUserId = id
+  document.getElementById('modal-user-name').textContent = name
+  document.getElementById('modal-points-val').value = ''
+  document.getElementById('modal-points').classList.add('open')
+}
+async function confirmGivePoints() {
+  const pts = parseInt(document.getElementById('modal-points-val').value)
+  if (!pts || pts <= 0) { toast('Enter a valid points amount', true); return }
+  try {
+    await api('POST', `/api/admin/users/${currentUserId}/give-points`, { points: pts })
+    toast(`✓ Gave ${pts} points`)
+    closeModal('modal-points')
+    renderUsers()
+  } catch(e) { toast('Error: '+e.message, true) }
+}
+
+// ── Give pixel modal ──────────────────────────────────────────
+function openGivePixel(id, name) {
+  currentUserId = id
+  document.getElementById('modal-pixel-user-name').textContent = name
+  document.getElementById('modal-pixel').classList.add('open')
+}
+async function confirmGivePixel() {
+  const pixelId = document.getElementById('modal-pixel-select').value
+  try {
+    await api('POST', `/api/admin/users/${currentUserId}/give-pixel`, { pixelId })
+    toast(`✓ Gave pixel ${pixelId}`)
+    closeModal('modal-pixel')
+    renderUsers()
+  } catch(e) { toast('Error: '+e.message, true) }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
+
+// ── Pixels ────────────────────────────────────────────────────
+async function renderPixels() {
+  const c = document.getElementById('content')
+  c.innerHTML = '<div class="empty-state">Loading...</div>'
+  try {
+    const pixels = await api('GET', '/api/admin/pixels')
+    const rankClass = { white:'rank-w', blue:'rank-b', purple:'rank-p', gold:'rank-g' }
+    const rankLabel = { white:'White', blue:'Blue', purple:'Purple', gold:'Gold' }
+    c.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn btn-primary" onclick="openAddPixel()">+ Add New Pixel</button>
+      </div>
+      <div class="card">
+        <div class="card-header">Pixel List (${pixels.length})</div>
+        ${pixels.length ? `
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Rank</th><th>Unique Power</th><th>Stats</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${pixels.map(p => `
+                <tr>
+                  <td style="font-family:monospace;color:var(--text3)">${p.id}</td>
+                  <td><strong>${p.name}</strong></td>
+                  <td><span class="badge ${rankClass[p.rank]}">${rankLabel[p.rank]}</span></td>
+                  <td style="font-size:11px;max-width:180px;color:var(--text2)">${p.uniquePower||'—'}</td>
+                  <td style="font-size:11px;color:var(--text2)">
+                    ⚡${p.stats?.performance||0} 🛡${p.stats?.protection||0} ✨${p.stats?.special||0}
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:4px">
+                      <button class="btn btn-ghost btn-sm" onclick="editPixel('${p.id}')">Edit</button>
+                      <button class="btn btn-danger btn-sm" onclick="deletePixel('${p.id}','${p.name}')">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : '<div class="empty-state">No pixels in the database yet.<br>Run the seed script to add default pixels.</div>'}
+      </div>
+    `
+  } catch(e) {
+    c.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`
+  }
+}
+
+async function deletePixel(id, name) {
+  if (!confirm(`Delete pixel "${name}"? This action cannot be undone.`)) return
+  try {
+    await api('DELETE', `/api/admin/pixels/${id}`)
+    toast(`✓ Deleted ${name}`)
+    renderPixels()
+  } catch(e) { toast('Error: '+e.message, true) }
+}
+
+function openAddPixel() {
+  const name = prompt('New pixel name:')
+  if (!name) return
+  const id = prompt('ID (no accents, no spaces, e.g. fire_cat):')
+  if (!id) return
+  const rank = prompt('Rank (white / blue / purple / gold):') || 'white'
+  const uniquePower = prompt('Unique power:') || ''
+  api('POST', '/api/admin/pixels', {
+    id, name, rank, locked: rank !== 'white',
+    uniquePower, functions:[],
+    stats: { performance: 5, protection: 5, special: 5 }
+  }).then(() => { toast('✓ Added pixel '+name); renderPixels() })
+    .catch(e => toast('Error: '+e.message, true))
+}
+
+function editPixel(id) {
+  toast('Detailed editing is still in development. For now, edit directly in the MongoDB Atlas UI.')
+}
+
+// ── Broadcast ─────────────────────────────────────────────────
+function renderBroadcast() {
+  document.getElementById('content').innerHTML = `
+    <div class="card" style="max-width:520px">
+      <div class="card-header">Send Notification to All Users</div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div class="field"><label>Title</label><input type="text" id="bc-title" placeholder="e.g. Special event!"></div>
+        <div class="field">
+          <label>Notification type</label>
+          <select id="bc-type" style="width:100%">
+            <option value="info">Info (blue)</option>
+            <option value="reward">Reward (gold)</option>
+            <option value="warning">Warning (red)</option>
+            <option value="system">System (gray)</option>
+          </select>
+        </div>
+        <div class="field"><label>Message</label><textarea id="bc-msg" placeholder="Notification message..."></textarea></div>
+        <button class="btn btn-primary" onclick="sendBroadcast()">📢 Send to All Users</button>
+      </div>
+    </div>
+  `
+}
+
+async function sendBroadcast() {
+  const title = document.getElementById('bc-title').value.trim()
+  const message = document.getElementById('bc-msg').value.trim()
+  const type = document.getElementById('bc-type').value
+  if (!title || !message) { toast('Fill in both title and message', true); return }
+  if (!confirm(`Send notification "${title}" to all users?`)) return
+  try {
+    await api('POST', '/api/admin/broadcast', { title, message, type })
+    toast('✓ Notification sent successfully')
+    document.getElementById('bc-title').value = ''
+    document.getElementById('bc-msg').value = ''
+  } catch(e) { toast('Error: '+e.message, true) }
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+let toastTimer
+function toast(msg, isErr=false) {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.style.background = isErr ? 'var(--red)' : 'var(--accent)'
+  el.classList.add('show')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500)
+}
+
+// ── Init ──────────────────────────────────────────────────────
+document.getElementById('server-url-display').textContent = BACKEND || 'not set'
+
+if (TOKEN) {
+  api('GET', '/api/user/me').then(user => {
+    if (user.role === 'admin') { ME = user; showApp() }
+    else { TOKEN=''; localStorage.removeItem('pp_token') }
+  }).catch(() => { TOKEN=''; localStorage.removeItem('pp_token') })
+}
+</script>
+</body>
+</html>
